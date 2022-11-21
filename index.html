@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1, minimum-scale=1, user-scalable=yes"
+        />
+        <title>Yandex Video Player</title>
+        <script
+            src="https://stands.s3.yandex.net/video-player/js/ace/1.2.9/ace.js"
+            crossorigin="anonymous"
+        ></script>
+        <script
+            src="https://stands.s3.yandex.net/video-player/js/json5@2.0.1.min.js"
+            crossorigin="anonymous"
+        ></script>
+        <script
+            src="https://stands.s3.yandex.net/video-player/js/jquery@3.2.1.min.js"
+            crossorigin="anonymous"
+        ></script>
+        <script
+            src="https://static.dzeninfra.ru/yandex-video-player-iframe-api-bundles/1.0-1025/js/player-api.modern.js"
+            crossorigin="anonymous"
+        ></script>
+        <link
+            rel="stylesheet"
+            href="https://stands.s3.yandex.net/video-player/css/bootstrap@4.0.0-beta.2.min.css"
+            crossorigin="anonymous"
+        />
+        <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+        <style>
+            #player {
+                width: 100%;
+                height: 100%;
+                background: #555;
+                background: linear-gradient(#11111a, #555);
+            }
+
+            .player-row {
+                width: 100%;
+            }
+
+            .editor__code {
+                width: 100%;
+            }
+
+            .editor__buttons {
+                padding: 10px 0;
+            }
+            .editor__buttons > .btn,
+            .editor__buttons > .badge {
+                margin-top: 5px !important;
+            }
+
+            .editor__buttons > .badge {
+                font-family: 'Courier New', Courier, monospace;
+            }
+
+            .editor__buttons,
+            .editor__code {
+                background: #2f322a;
+            }
+
+            .toggler {
+                padding: 4px 10px;
+                border-bottom: 1px solid #272727;
+                color: white;
+                cursor: pointer;
+                background: #2f322a;
+                font-size: 13px;
+            }
+            .toggler:before {
+                padding: 3px 7px 0 0;
+                font-size: 9px;
+                content: '▶';
+            }
+            .toggler.open:before {
+                content: '▼';
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            .btn.disabled:hover {
+                cursor: not-allowed;
+            }
+
+            select {
+                font-size: 13px;
+                color: #fff;
+                background-color: #2f322a;
+                border: 1px solid #868e96;
+                border-radius: 2px;
+                padding: 0.375rem 0.75rem;
+                height: 31px;
+            }
+
+            #bottom .links {
+                margin: 0 10px 20px 10px;
+            }
+
+            @media (max-width: 575px) {
+                .player-row {
+                    height: 300px;
+                }
+            }
+
+            .insert-into-container {
+                float: left;
+                width: calc(50% - 5px);
+                height: 360px;
+                border: 1px solid red;
+            }
+
+            .insert-into-container:empty:before {
+                color: white;
+            }
+            #insert-into-container1:empty:before {
+                content: '#container1';
+            }
+            #insert-into-container2:empty:before {
+                content: '#container2';
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container-fluid p-2 p-b-1 m-0">
+            <div class="row p-0 m-0 player-row">
+                <div class="col-12 p-0">
+                    <div id="player"></div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="controls">Controls</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div class="editor__buttons p-2">
+                        <button
+                            class="btn btn-sm btn-outline-secondary"
+                            onclick='playerApi.destroy().then(function(){console.info("destroyed")}).catch(function(){console.warn("destroy failed")})'
+                        >
+                            destroy
+                        </button>
+                        <button
+                            class="btn btn-sm btn-secondary"
+                            onclick="playerApi.seek(playerApi.getState().currentTime - 10)"
+                        >
+                            &larr;
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="playerApi.pause()">
+                            &nbsp;&#10073;&#10073;&nbsp;
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="playerApi.play()">
+                            &#9658;
+                        </button>
+                        <button
+                            class="btn btn-sm btn-secondary"
+                            onclick="playerApi.seek(playerApi.getState().currentTime + 10)"
+                        >
+                            &rarr;
+                        </button>
+                        <button
+                            class="btn btn-sm btn-outline-secondary"
+                            onclick="playerApi.setFullscreen(true)"
+                        >
+                            fullscreen
+                        </button>
+                        <button
+                            class="btn btn-sm btn-outline-secondary"
+                            onclick="playerApi.openReportWindow()"
+                        >
+                            report
+                        </button>
+                        &nbsp;|&nbsp;
+                        <button class="btn btn-sm btn-secondary" id="copy-link">copy link</button>
+                        <button class="btn btn-sm btn-secondary" id="copy-short-link">
+                            short link
+                        </button>
+                        <br />
+                        <div class="badge badge-dark">
+                            UTC&nbsp;<span id="utcPosition">--</span>
+                        </div>
+                        &nbsp;
+                        <div class="badge badge-dark">
+                            watchedTime&nbsp;<span id="watchedTime">----</span>
+                        </div>
+                        &nbsp;
+                        <div class="badge badge-dark">
+                            liveLatency&nbsp;<span id="liveLatency">----</span>
+                        </div>
+                        &nbsp;
+                        <div class="badge badge-dark">
+                            bufferedTime&nbsp;<span id="bufferedTime">----</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="initial">Player config</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div
+                        id="initial_config_editor"
+                        class="editor__code"
+                        style="height: 500px"
+                    ></div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn-secondary" id="addTrackingsInitialConfig">
+                            add trackings
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="resetInitialConfig">
+                            reset
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" id="applyInitialConfig">
+                            apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="source">setSource</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div id="source_config_editor" class="editor__code" style="height: 300px"></div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn-outline-secondary" id="resetSourceConfig">
+                            reset
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="sourceConfigToInitial">
+                            copy to initial
+                        </button>
+                        <select id="sourcePresets">
+                            <option value="default" selected>presets</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-primary" id="applySourceConfig">
+                            setSource
+                        </button>
+                        <button
+                            class="btn btn-sm btn-outline-primary"
+                            id="applySourceConfigEventually"
+                        >
+                            setSource after 5 sec
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" id="preloadSourceConfig">
+                            preloadSource
+                        </button>
+                        <button
+                            class="btn btn-sm btn-outline-primary disabled"
+                            id="abortPreloadSourceConfig"
+                        >
+                            abortPreload
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="demo">This page config</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div id="demo_config_editor" class="editor__code" style="height: 400px"></div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn-secondary" id="betaDemoConfig">beta</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="resetDemoConfig">
+                            reset
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" id="applyDemoConfig">
+                            apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="code">On player ready</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div id="code_config_editor" class="editor__code" style="height: 500px"></div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn-outline-primary" id="applyCodeConfig">
+                            apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid pt-2 pr-2 pb-2 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="insert_into">Test insetInto</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div style="background-color: rgb(39, 40, 34); padding: 5px" id="insert_into">
+                        <div id="insert-into-container1" class="insert-into-container"></div>
+                        <div id="insert-into-container2" class="insert-into-container"></div>
+                    </div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn-outline-primary" id="insertInto1">
+                            insertInto('#container1')
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" id="insertInto2">
+                            insertInto('#container2')
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="api">PlayerApi</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div id="api_config_editor" class="editor__code" style="height: 500px"></div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn-outline-secondary" id="resetApiConfig">
+                            reset
+                        </button>
+                        <select id="apiPresets">
+                            <option value="default" selected>presets</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-primary" id="applyApiConfig">
+                            apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid pt-2 pr-2 pb-0 pl-2 m-0">
+            <div class="row m-0 toggler" data-toggler="console">Console</div>
+            <div class="row p-0 m-0 hidden">
+                <div class="col-12 p-0">
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn btn-outline-primary foldAll">Fold All</button>
+                        <button class="btn btn-sm btn btn-outline-primary scrollDown">
+                            Scroll down
+                        </button>
+                        <button class="btn btn-sm btn btn-outline-primary clearConsole">
+                            Clear
+                        </button>
+                    </div>
+                    <div
+                        id="console_config_editor"
+                        class="editor__code"
+                        style="height: 900px"
+                    ></div>
+                    <div class="editor__buttons p-2 text-right">
+                        <button class="btn btn-sm btn btn-outline-primary foldAll">Fold All</button>
+                        <button class="btn btn-sm btn btn-outline-primary scrollDown">
+                            Scroll down
+                        </button>
+                        <button class="btn btn-sm btn btn-outline-primary clearConsole">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="bottom">
+            <hr />
+            <div class="links">
+                <a href="https://github.yandex-team.ru/IMS/video-player-iframe-api" target="_blank"
+                    >github</a
+                >
+            </div>
+        </div>
+        <script src="build/js/demoV2.js"></script>
+    </body>
+</html>
